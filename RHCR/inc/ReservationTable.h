@@ -11,10 +11,10 @@ public:
     int window;
     bool use_cat; // use conflict avoidance table
 	bool hold_endpoints = false;
-
+    int tail_padding = 0;
     bool prioritize_start;
     double runtime;
-
+    int endpoint_min_sep = 0;
     void clear() {sit.clear(); ct.clear(); cat.clear(); }
 	void copy(const ReservationTable& other) {sit = other.sit; ct = other.ct; cat = other.cat; }
     void build(const vector<Path*>& paths,

@@ -9,7 +9,7 @@ void ReservationTable::updateSIT(size_t location)
 		if (it != ct.end())
 		{
 			for (auto time_range : it->second)
-				insertConstraint2SIT(location, time_range.first, time_range.second);
+				insertConstraint2SIT((int)location, time_range.first, time_range.second);
 			ct.erase(it);
 		}
 
@@ -19,18 +19,18 @@ void ReservationTable::updateSIT(size_t location)
 			{
 				if (cat[t][location])
 				{
-					insertSoftConstraint2SIT(location, t, t + 1);
+					insertSoftConstraint2SIT((int)location, t, t + 1);
 				}
 			}
 		}
 		else // edge
 		{
-			auto edge = getEdge(location);
+			auto edge = getEdge((int)location);
 			for (int t = 1; t < (int)cat.size(); t++)
 			{
 				if (cat[t][edge.first] && cat[t - 1][edge.second])
 				{
-					insertSoftConstraint2SIT(location, t, t + 1);
+					insertSoftConstraint2SIT((int)location, t, t + 1);
 				}
 			}
 		}
@@ -38,7 +38,7 @@ void ReservationTable::updateSIT(size_t location)
 }
 
 
-//merge successive safe intervals with the same number of conflicts.
+// merge successive safe intervals with the same number of conflicts.
 void ReservationTable::mergeIntervals(list<Interval >& intervals) const
 {
 	if (intervals.empty())
@@ -130,7 +130,7 @@ void ReservationTable::insertConstraint2SIT(int location, int t_min, int t_max)
 			++it; 
         else if (t_max <= std::get<0>(*it))
             break;
-       else  if (std::get<0>(*it) < t_min && std::get<1>(*it) <= t_max)
+        else if (std::get<0>(*it) < t_min && std::get<1>(*it) <= t_max)
         {
             (*it) = make_tuple(std::get<0>(*it), t_min, 0);
 			++it;
@@ -202,9 +202,11 @@ void ReservationTable::insertPath2CT(const Path& path)
 {
 	if (path.empty())
 		return;
+
 	auto prev = path.begin();
 	auto curr = path.begin();
 	++curr;
+
 	while (curr != path.end() && curr->timestep - k_robust <= window)
 	{
 		if (prev->location != curr->location)
@@ -219,6 +221,7 @@ void ReservationTable::insertPath2CT(const Path& path)
 		}
 		++curr;
 	}
+
 	if (curr != path.end())
 	{
 		if (G.types[prev->location] != "Magic")
@@ -237,17 +240,43 @@ void ReservationTable::insertPath2CT(const Path& path)
 			ct[getEdgeIndex(path.back().location, prev->location)].emplace_back(path.back().timestep, path.back().timestep + 1);
 		}
 	}
+
+	// Infinite hold at goal if using hold_endpoints
 	if (hold_endpoints && G.types[prev->location] != "Magic")
 		ct[path.back().location].emplace_back(path.back().timestep, INTERVAL_MAX);
+
+	// Bounded endpoint separation (capacity-friendly)
+	if (endpoint_min_sep > 0 && !path.empty())
+	{
+		const int ep = path.back().location;
+		if (ep >= 0 && ep < (int)G.types.size() && G.types[ep] != "Magic")
+		{
+			const int t0 = path.back().timestep;
+			// Prevent others from taking this endpoint for [t0, t0 + sep)
+			ct[ep].emplace_back(t0, t0 + endpoint_min_sep);
+		}
+	}
+
+	// NEW: ghost tail padding — even if not holding endpoints
+	if (tail_padding > 0 && !path.empty())
+	{
+		const int ep = path.back().location;
+		if (ep >= 0 && ep < (int)G.types.size() && G.types[ep] != "Magic")
+		{
+			const int t0 = path.back().timestep;
+			// “Linger” virtually for a few steps so others don’t time-slice the same cell
+			ct[ep].emplace_back(t0, t0 + tail_padding);
+		}
+	}
 }
 
 void ReservationTable::addInitialConstraints(const list< tuple<int, int, int> >& initial_constraints, int current_agent)
 {
 	for (auto con : initial_constraints)
 	{
-		if (std::get<0>(con) != current_agent && 0 <= std::get<1>(con) && std::get<1>(con) < G.types.size() &&
+		if (std::get<0>(con) != current_agent && 0 <= std::get<1>(con) && std::get<1>(con) < (int)G.types.size() &&
 			G.types[std::get<1>(con)] != "Magic")
-			ct[std::get<1>(con)].emplace_back(0, min(window, std::get<2>(con)));
+			ct[std::get<1>(con)].emplace_back(0, std::min(window, std::get<2>(con)));
 	}
 }
 
@@ -257,14 +286,14 @@ void ReservationTable::insertPath2CAT(const Path& path)
 {
 	if (path.empty())
 		return;
-	int max_timestep = min((int)path.size() - 1, k_robust + window);
+	int max_timestep = std::min((int)path.size() - 1, k_robust + window);
 	int timestep = 0;
 	while (timestep <= max_timestep)
 	{
 		int location = path[timestep].location;
 		if (G.types[location] != "Magic")
 		{
-			for (int t = max(0, timestep - k_robust); t <= min((int)cat.size() - 1, timestep + k_robust); t++)
+			for (int t = std::max(0, timestep - k_robust); t <= std::min((int)cat.size() - 1, timestep + k_robust); t++)
 			{
 				cat[t][location] = true;
 			}
@@ -466,8 +495,8 @@ list<Interval> ReservationTable::getSafeIntervals(int from, int to, int lower_bo
 	auto it2 = safe_edge_intervals.begin();
 	while (it1 != safe_vertex_intervals.end() && it2 != safe_edge_intervals.end())
 	{
-		int t_min = max(std::get<0>(*it1), std::get<0>(*it2));
-		int t_max = min(std::get<1>(*it1), std::get<1>(*it2));
+		int t_min = std::max(std::get<0>(*it1), std::get<0>(*it2));
+		int t_max = std::min(std::get<1>(*it1), std::get<1>(*it2));
 		if (t_min < t_max)
 			safe_intervals.emplace_back(t_min, t_max, std::get<2>(*it1) + std::get<2>(*it2));
 		if (t_max == std::get<1>(*it1))
@@ -529,11 +558,11 @@ void ReservationTable::print() const
 void ReservationTable::printCT(size_t location) const
 {
     cout << "loc=" << location << ":";
-    const auto it = ct.find(location);
+    const auto it = ct.find((int)location);
     if (it != ct.end())
     {
-        for (const auto & interval : ct.at(location))
-        cout << "[" << std::get<0>(interval) << "," << std::get<1>(interval) << "],";
+        for (const auto & interval : ct.at((int)location))
+            cout << "[" << std::get<0>(interval) << "," << std::get<1>(interval) << "],";
     }
     cout << endl;
 }
@@ -572,12 +601,10 @@ bool ReservationTable::isConflicting(int curr_id, int next_id, int next_timestep
 	if (next_timestep >= (int)cat.size())
 		return false;
 
-	// check vertex constraints (being in next_id at next_timestep is disallowed)
+	// check vertex conflicts
 	if (cat[next_timestep][next_id])
 		return true;
-	// check edge constraints (the move from curr_id to next_id at next_timestep-1 is disallowed)
-	// which means that res_table is occupied with another agent for [curr_id,next_timestep] and [next_id,next_timestep-1]
-	// WRONG!
+	// check edge conflicts (swap)
 	else if (curr_id != next_id && cat[next_timestep][curr_id] && cat[next_timestep - 1][next_id])
 		return true;
 	else

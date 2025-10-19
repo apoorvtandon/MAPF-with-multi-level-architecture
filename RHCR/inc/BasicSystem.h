@@ -7,85 +7,83 @@
 #include "ECBS.h"
 #include "LRAStar.h"
 
+#include <list>
+#include <tuple>
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <climits>
 
 class BasicSystem
 {
 public:
-    // params for MAPF algotithms
-	MAPFSolver& solver;
-	bool hold_endpoints;
-	bool useDummyPaths;
-    int time_limit;
-    int travel_time_window;
-	//string potential_function;
-	//double potential_threshold;
-	//double suboptimal_bound;
-    int screen;
-	bool log;
-    int num_of_drives;
-    int seed;
-    int simulation_window;
-    int planning_window;
-    int simulation_time;
+    // params for MAPF algorithms
+    MAPFSolver& solver;
+    bool hold_endpoints = false;
+    bool useDummyPaths = false;
+    int time_limit = 0;
+    int travel_time_window = 0;
+    int screen = 0;
+    bool log = false;
+    int num_of_drives = 0;
+    int seed = 0;
+    int simulation_window = 1;
+    int planning_window = INT_MAX / 2;
+    int simulation_time = 0;
 
     // params for drive model
-    bool consider_rotation;
-    int k_robust;
+    bool consider_rotation = false;
+    int k_robust = 0;
 
     BasicSystem(const BasicGraph& G, MAPFSolver& solver);
     ~BasicSystem();
 
-	// TODO
-    /*bool load_config(std::string fname);
-    bool generate_random_MAPF_instance();
-    bool run();
-	void print_MAPF_instance() const;
-	void save_MAPF_instance(std::string fname) const;
-	bool read_MAPF_instance(std::string fname);*/
-
     // I/O
     std::string outfile;
     void save_results();
-	double saving_time = 0; // time for saving results to files, in seconds
-    int num_of_tasks; // number of finished tasks
+    double saving_time = 0; // seconds
+    int num_of_tasks;       // number of finished tasks
 
-	list<int> new_agents; // used for replanning a subgroup of agents
+    std::list<int> new_agents; // used for replanning a subgroup of agents
 
     // used for MAPF instance
-    vector<State> starts;
-    vector< vector<pair<int, int> > > goal_locations;
-	// unordered_set<int> held_endpoints;
-    int timestep;
+    std::vector<State> starts;
+    std::vector< std::vector<std::pair<int, int>> > goal_locations;
+    int timestep = 0;
 
     // record movements of drives
     std::vector<Path> paths;
-    std::vector<std::list<std::pair<int, int> > > finished_tasks; // location + finish time
+    std::vector<std::list<std::pair<int, int>>> finished_tasks; // location + finish time
 
     bool congested() const;
-	bool check_collisions(const vector<Path>& input_paths) const;
+    bool check_collisions(const std::vector<Path>& input_paths) const;
 
     // update
     void update_start_locations();
-    void update_travel_times(unordered_map<int, double>& travel_times);
-    void update_paths(const std::vector<Path*>& MAPF_paths, int max_timestep);
-    void update_paths(const std::vector<Path>& MAPF_paths, int max_timestep);
-    void update_initial_paths(vector<Path>& initial_paths) const;
-    void update_initial_constraints(list< tuple<int, int, int> >& initial_constraints) const;
-    
-	void add_partial_priorities(const vector<Path>& initial_paths, PriorityGraph& initial_priorities) const;
-	list<tuple<int, int, int>> move(); // return finished tasks
-	void solve();
-	void initialize_solvers();
-	bool load_records();
-	bool load_locations();
 
+    // default args here (header) so 1-arg calls compile everywhere
+    void update_paths(const std::vector<Path*>& MAPF_paths, int max_timestep = INT_MAX);
+    void update_paths(const std::vector<Path>&  MAPF_paths, int max_timestep = INT_MAX);
+
+    // public API only in std:: flavor — implementation can handle boost internally
+    void update_travel_times(std::unordered_map<int, double>& travel_times);
+
+    void update_initial_paths(std::vector<Path>& initial_paths) const;
+    void update_initial_constraints(std::list< std::tuple<int, int, int> >& initial_constraints) const;
+
+    void add_partial_priorities(const std::vector<Path>& initial_paths, PriorityGraph& initial_priorities) const;
+    std::list<std::tuple<int, int, int>> move(); // return finished tasks
+    void solve();
+    void initialize_solvers();
+    bool load_records();
+    bool load_locations();
 
 protected:
-	bool solve_by_WHCA(vector<Path>& planned_paths,
-		const vector<State>& new_starts, const vector< vector<pair<int, int> > >& new_goal_locations);
+    bool solve_by_WHCA(std::vector<Path>& planned_paths,
+                       const std::vector<State>& new_starts,
+                       const std::vector< std::vector<std::pair<int, int>> >& new_goal_locations);
     bool LRA_called = false;
 
 private:
-	const BasicGraph& G;
+    const BasicGraph& G;
 };
-
