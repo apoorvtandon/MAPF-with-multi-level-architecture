@@ -2,6 +2,7 @@
 
 #include "BasicSystem.h"
 #include "KivaGraph.h"
+#include "ReservationTable.h"
 
 #include <unordered_set>
 #include <vector>
@@ -30,10 +31,12 @@ public:
     // ====== Stitching controls ======
     void setStitchMode(bool on)                   { stitch_mode = on; }
     void setStitchAgent(int k)                    { stitch_target = k; }   // -1 = all, default 0 = only agent 0
-
-    // Choose the engine used for stitching:
-    // false = greedy stepper (fallback), true = SIPP-based stitching
     void setStitchUseSIPP(bool on)                { stitch_use_sipp = on; }
+
+    // Batch-stitch options
+    enum class StitchOrder { ByIndex=0, ShortestRemaining=1, ClosestNextGoal=2 };
+    void setStitchBatchOrder(StitchOrder ord)     { stitch_batch_order = ord; }
+    void setStitchCropToWindow(bool on)           { stitch_crop_horizon = on; } // use planning_window limit in RT
 
 private:
     // ===== lifecycle =====
@@ -84,12 +87,24 @@ private:
     void debug_print_capacity_state() const;
 
     // ===== stitching =====
-    void plan_stitched_all_applicable_agents(); // based on stitch_target
-    void plan_stitched_for_agent(int k);        // choose engine (SIPP or fallback)
-    void suppress_replan_for(int k);            // remove k from new_agents so solver doesn’t overwrite
+    void plan_stitched_all_applicable_agents();     // based on stitch_target
+    void plan_stitched_for_agent(int k);            // choose engine (SIPP or fallback)
+    void suppress_replan_for(int k);                // remove k from new_agents so solver doesn’t overwrite
     bool stitch_mode     = true;
-    int  stitch_target   = 0;    // default: only agent 0; set -1 to stitch all
-    bool stitch_use_sipp = true; // NEW: use SIPP to stitch (default ON)
+    int  stitch_target   = -1;    // default: only agent 0; set -1 to stitch all
+    bool stitch_use_sipp = true; // use SIPP to stitch (default ON)
+
+    // NEW: batch stitching with RT injection
+    void plan_stitched_batch();
+    std::vector<int> compute_batch_order() const;   // which agents + in what order
+
+    // RT helpers
+    void build_rt_from_teammates(int current_agent, ReservationTable& rt) const;
+    void build_rt_from_teammates_with_crop(int current_agent, int horizon_t, ReservationTable& rt) const;
+
+    // batch options
+    StitchOrder stitch_batch_order = StitchOrder::ByIndex;
+    bool stitch_crop_horizon = true;
 
 private:
     // ===== original data we rely on =====
