@@ -31,7 +31,7 @@ public:
 
     // ====== Stitching controls ======
     void setStitchMode(bool on)                   { stitch_mode = on; }
-    void setStitchAgent(int k)                    { stitch_target = k; }   // -1 = all, default 0
+    void setStitchAgent(int k)                    { stitch_target = k; }   // -1 = all
     void setStitchUseSIPP(bool on)                { stitch_use_sipp = on; }
     enum class StitchOrder { ByIndex=0, ShortestRemaining=1, ClosestNextGoal=2 };
     void setStitchBatchOrder(StitchOrder ord)     { stitch_batch_order = ord; }
@@ -41,7 +41,7 @@ public:
     void setRestitchOnChange(bool on)             { restitch_on_change = on; }
     void setStitchDepth(int d)                    { stitch_depth = (d > 0 ? d : 1); }
 
-    // ====== Metrics controls (NEW) ======
+    // ====== Metrics controls ======
     void setMetricsCSV(const std::string& path)   { metrics_csv_path = path; metrics_csv_enabled = !path.empty(); }
     void setMetricsVerbose(bool on)               { metrics_verbose = on; } // print per-tick stitch summary
 
@@ -58,11 +58,11 @@ private:
     // ===== capacity scaffolding =====
     using Goal = std::pair<int,int>; // (endpoint, release_time)
     std::vector<std::vector<int>> given_goals;
-    std::vector<std::deque<Goal>> bundle;
-    std::vector<std::deque<Goal>> rest;
+    std::vector<std::deque<Goal>> bundle; // active, capped by capacity
+    std::vector<std::deque<Goal>> rest;   // backlog
 
     bool capacity_mode         = true;
-    int  default_agent_capacity= 2;
+    int  default_agent_capacity= 3;
     std::vector<int> per_agent_capacity;
     bool randomize_sequences   = true;
     unsigned rng_seed          = 1;
@@ -105,6 +105,11 @@ private:
     void build_rt_from_teammates(int current_agent, ReservationTable& rt) const;
     void build_rt_from_teammates_with_crop(int current_agent, int horizon_t, ReservationTable& rt) const;
 
+    // SIPP wait-retry helper (jam mitigation)
+    bool try_sipp_with_initial_waits(int k, int start_v, int start_t,
+                                     const std::vector<int>& goals,
+                                     std::vector<State>& out_suffix);
+
     // Dirty tracking & limits
     std::vector<bool> bundle_dirty;
     bool restitch_on_change = true;
@@ -114,23 +119,20 @@ private:
     StitchOrder stitch_batch_order = StitchOrder::ByIndex;
     bool stitch_crop_horizon = true;
 
-    // ===== Metrics (NEW) =====
-    // counters
+    // ===== Metrics =====
     long long m_stitch_attempts_total   = 0;
-    long long m_stitch_agents_ticks     = 0; // agents stitched this tick (sum over ticks)
+    long long m_stitch_agents_ticks     = 0;
     long long m_sipp_success_total      = 0;
     long long m_sipp_fallback_total     = 0;
-    long long m_sipp_fail_total         = 0; // SIPP returned empty (we then fell back)
-    long long m_skipped_clean_total     = 0; // restitch_on_change skipped because clean
-    long long m_restitches_total        = 0; // times bundle_dirty triggered a restitch
+    long long m_sipp_fail_total         = 0;
+    long long m_skipped_clean_total     = 0;
+    long long m_restitches_total        = 0;
 
-    // per-tick temp
     int m_tick_stitched_agents          = 0;
     int m_tick_sipp_success             = 0;
     int m_tick_sipp_fallback            = 0;
     int m_tick_skipped_clean            = 0;
 
-    // printing/logging
     bool metrics_csv_enabled = false;
     bool metrics_verbose     = true;
     std::string metrics_csv_path;

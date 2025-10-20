@@ -22,7 +22,8 @@
 using std::cout;
 using std::endl;
 
-// Quick bounds check
+// ------------------------------- small utils --------------------------------
+
 static inline bool valid_vertex(const KivaGrid& G, int v)
 {
     const int N = G.get_rows() * G.get_cols();
@@ -54,19 +55,21 @@ static inline const State& safe_path_at(std::vector<std::vector<State>>& paths,
     return paths[k][t];
 }
 
+// Always return a real endpoint (avoid arbitrary 0 fallback)
 static inline int random_endpoint_not(const KivaGrid& G, int curr)
 {
-    if (G.endpoints.empty()) return valid_vertex(G, curr) ? curr : 0;
+    if (G.endpoints.empty()) return curr;
     int goal = G.endpoints[rand() % (int)G.endpoints.size()];
-    int tries = 12;
-    while (tries-- && goal == curr) {
+    for (int tries = 0; tries < 16 && goal == curr; ++tries)
         goal = G.endpoints[rand() % (int)G.endpoints.size()];
+    if (goal == curr) {
+        for (int e : G.endpoints) { if (e != curr) { goal = e; break; } }
+        if (goal == curr) goal = G.endpoints.front();
     }
-    if (!valid_vertex(G, goal)) goal = 0;
     return goal;
 }
 
-// Greedy stepper fallback
+// Greedy stepper fallback (collision-ignorant)
 static inline std::vector<std::pair<int,int>>
 safe_step_path(const KivaGrid& G, int v0, int t0, int v_goal)
 {
@@ -103,6 +106,8 @@ safe_step_path(const KivaGrid& G, int v0, int t0, int v_goal)
     }
     return out;
 }
+
+// -------------------------------- core class --------------------------------
 
 KivaSystem::KivaSystem(const KivaGrid& G_, MAPFSolver& solver): BasicSystem(G_, solver), G(G_) {}
 KivaSystem::~KivaSystem() {}
@@ -205,7 +210,7 @@ void KivaSystem::bundle_initialize_from_given(const std::vector<std::vector<int>
 
         const int cap = cap_of(k);
         for (size_t i = 0; i < seq.size(); ++i) {
-            int v = valid_vertex(G, seq[i]) ? seq[i] : 0;
+            int v = valid_vertex(G, seq[i]) ? seq[i] : random_endpoint_not(G, 0);
             Goal g = { v, 0 };
             if ((int)bundle[k].size() < cap) bundle[k].push_back(g);
             else                              rest[k].push_back(g);
@@ -283,7 +288,7 @@ void KivaSystem::bundle_mirror_to_engine()
     for (int k = 0; k < num_of_drives; ++k) {
         goal_locations[k].clear();
         for (const auto& g : bundle[k]) {
-            int v = valid_vertex(G, g.first) ? g.first : 0;
+            int v = valid_vertex(G, g.first) ? g.first : G.endpoints.empty() ? 0 : G.endpoints.front();
             goal_locations[k].push_back({v, g.second});
         }
         if (goal_locations[k].empty()) {
@@ -303,7 +308,7 @@ void KivaSystem::reorder_bundle_by_dvs(int k)
 
     std::vector<int> goals;
     goals.reserve(bundle[k].size());
-    for (auto& g : bundle[k]) goals.push_back(valid_vertex(G, g.first) ? g.first : 0);
+    for (auto& g : bundle[k]) goals.push_back(valid_vertex(G, g.first) ? g.first : random_endpoint_not(G, 0));
 
     mgmapf::MultiGoalPlannerDVS::DistanceOracle dist = [&](int u, int v){
         if (!valid_vertex(G, u) || !valid_vertex(G, v)) return 0;
@@ -351,15 +356,14 @@ void KivaSystem::maybe_autorefill_rest(int k)
         std::unordered_set<int> claimed = collect_claimed_active_endpoints(k);
         claimed.insert(curr);
 
-        int attempts_per_goal = 16;
         const int cap = cap_of(k);
         for (int i = 0; i < cap; ++i) {
             int v = generate_endpoint_for(k, curr);
-            int tries = attempts_per_goal;
+            int tries = 16;
             while (avoid_dup_goals && claimed.count(v) && tries-- > 0) {
                 v = generate_endpoint_for(k, curr);
             }
-            if (!valid_vertex(G, v)) v = 0;
+            if (!valid_vertex(G, v)) v = random_endpoint_not(G, curr);
             rest[k].push_back({v, 0});
             claimed.insert(v);
         }
@@ -418,7 +422,7 @@ void KivaSystem::metrics_after_stitch(bool used_sipp, bool sipp_ok, bool fell_ba
 
     if (used_sipp) {
         if (sipp_ok) { m_tick_sipp_success++; m_sipp_success_total++; }
-        else         { m_sipp_fail_total++; } // then we probably fell back
+        else         { m_sipp_fail_total++; }
     }
     if (fell_back)  { m_tick_sipp_fallback++; m_sipp_fallback_total++; }
 }
@@ -468,6 +472,45 @@ void KivaSystem::suppress_replan_for(int k)
     }
 }
 
+// SIPP multi-goal with wait retries (jam mitigation)
+bool KivaSystem::try_sipp_with_initial_waits(
+    int k, int start_v, int start_t,
+    const std::vector<int>& goals,
+    std::vector<State>& out_suffix)
+{
+    if (goals.empty()) return false;
+    static const int OFFSETS[] = {0, 1, 2, 3, 5};
+
+    for (int w : OFFSETS) {
+        ReservationTable rt(G);
+        if (stitch_crop_horizon)
+            build_rt_from_teammates_with_crop(k, timestep + planning_window, rt);
+        else
+            build_rt_from_teammates(k, rt);
+
+        State s0(start_v, start_t + w, -1);
+        std::vector<std::pair<int,int>> gl;
+        gl.reserve(goals.size());
+        for (int g : goals) gl.emplace_back(g, 0);
+
+        SIPP sipp;
+        auto path = sipp.run(G, s0, gl, rt);
+        if (path.empty()) continue;
+
+        out_suffix.clear();
+        out_suffix.reserve(w + path.size());
+        for (int i = 0; i < w; ++i) out_suffix.emplace_back(start_v, start_t + i, -1);
+        out_suffix.insert(out_suffix.end(), path.begin(), path.end());
+
+        for (int i = 1; i < (int)out_suffix.size(); ++i)
+            if (out_suffix[i].timestep < out_suffix[i-1].timestep)
+                out_suffix[i].timestep = out_suffix[i-1].timestep;
+
+        return true;
+    }
+    return false;
+}
+
 static bool build_sipp_multi_goal_path(const KivaGrid& G,
                                        int start_v, int start_t,
                                        const std::vector<int>& goals,
@@ -495,7 +538,7 @@ void KivaSystem::plan_stitched_for_agent(int k)
     if (bundle[k].empty()) return;
 
     if (restitch_on_change && !bundle_dirty[k] && timestep > 0) {
-        metrics_after_stitch(false, false, false, true); // skipped clean
+        metrics_after_stitch(false, false, false, true);
         return;
     }
 
@@ -515,16 +558,22 @@ void KivaSystem::plan_stitched_for_agent(int k)
 
     if (stitch_use_sipp) {
         used_sipp = true;
-        ReservationTable rt(G);
-        if (stitch_crop_horizon)
-            build_rt_from_teammates_with_crop(k, timestep + planning_window, rt);
-        else
-            build_rt_from_teammates(k, rt);
+        // Try wait-retry first (robust)
+        sipp_ok = try_sipp_with_initial_waits(k, start_v, start_t, goals, new_suffix);
 
-        sipp_ok = build_sipp_multi_goal_path(G, start_v, start_t, goals, rt, new_suffix);
+        // Optional: single-shot w=0 (kept for parity; harmless if wait-retry succeeds)
+        if (!sipp_ok) {
+            ReservationTable rt(G);
+            if (stitch_crop_horizon)
+                build_rt_from_teammates_with_crop(k, timestep + planning_window, rt);
+            else
+                build_rt_from_teammates(k, rt);
+            sipp_ok = build_sipp_multi_goal_path(G, start_v, start_t, goals, rt, new_suffix);
+        }
     }
+
     if (!sipp_ok) {
-        // fallback greedy
+        // Greedy fallback
         std::vector<std::pair<int,int>> seq;
         seq.emplace_back(start_v, start_t);
         int v = start_v, t = start_t;
@@ -535,6 +584,7 @@ void KivaSystem::plan_stitched_for_agent(int k)
                 v = g; t = seq.back().second;
             }
         }
+        new_suffix.clear();
         new_suffix.reserve(seq.size());
         for (auto &p : seq) new_suffix.emplace_back(p.first, p.second, -1);
         fell_back = true;
@@ -552,7 +602,6 @@ void KivaSystem::plan_stitched_for_agent(int k)
 
     suppress_replan_for(k);
     bundle_dirty[k] = false;
-
     metrics_after_stitch(used_sipp, sipp_ok, fell_back, false);
 }
 
@@ -610,13 +659,11 @@ void KivaSystem::plan_stitched_batch()
     auto to_go = compute_batch_order();
     for (int k : to_go) {
         plan_stitched_for_agent(k);
-        // paths[k] is updated; next agent’s RT will include it via build_rt_*()
+        // Updated path[k] will be seen by the next agent via the RT build
     }
 }
 
-// -------------------------------- update ------------------------------------
-
-
+// ------------------------------ debug printing ------------------------------
 
 void KivaSystem::debug_print_capacity_state() const
 {
@@ -655,6 +702,8 @@ void KivaSystem::debug_print_capacity_state() const
 
     std::cout << oss.str();
 }
+
+// -------------------------------- update ------------------------------------
 
 void KivaSystem::update_goal_locations()
 {
@@ -728,6 +777,7 @@ void KivaSystem::update_goal_locations()
                     new_agents.emplace_back(k);
                     continue;
                 }
+                int curr = safe_path_at(paths, G, k, timestep, consider_rotation).location;
                 int agent = k;
                 int loc = curr;
                 cout << "Agent " << agent
