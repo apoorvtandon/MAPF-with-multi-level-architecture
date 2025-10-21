@@ -116,32 +116,6 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named test_dvs
-
-# Build rule for target.
-test_dvs: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 test_dvs
-.PHONY : test_dvs
-
-# fast build rule for target.
-test_dvs/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs.dir\build.make CMakeFiles/test_dvs.dir/build
-.PHONY : test_dvs/fast
-
-#=============================================================================
-# Target rules for targets named test_dvs_adapter
-
-# Build rule for target.
-test_dvs_adapter: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 test_dvs_adapter
-.PHONY : test_dvs_adapter
-
-# fast build rule for target.
-test_dvs_adapter/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_adapter.dir\build.make CMakeFiles/test_dvs_adapter.dir/build
-.PHONY : test_dvs_adapter/fast
-
-#=============================================================================
 # Target rules for targets named lifelong
 
 # Build rule for target.
@@ -153,45 +127,6 @@ lifelong: cmake_check_build_system
 lifelong/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/build
 .PHONY : lifelong/fast
-
-#=============================================================================
-# Target rules for targets named mg_sipp_adapter
-
-# Build rule for target.
-mg_sipp_adapter: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 mg_sipp_adapter
-.PHONY : mg_sipp_adapter
-
-# fast build rule for target.
-mg_sipp_adapter/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\mg_sipp_adapter.dir\build.make CMakeFiles/mg_sipp_adapter.dir/build
-.PHONY : mg_sipp_adapter/fast
-
-#=============================================================================
-# Target rules for targets named test_dvs_sipp_wire
-
-# Build rule for target.
-test_dvs_sipp_wire: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 test_dvs_sipp_wire
-.PHONY : test_dvs_sipp_wire
-
-# fast build rule for target.
-test_dvs_sipp_wire/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_sipp_wire.dir\build.make CMakeFiles/test_dvs_sipp_wire.dir/build
-.PHONY : test_dvs_sipp_wire/fast
-
-#=============================================================================
-# Target rules for targets named bundle_planner
-
-# Build rule for target.
-bundle_planner: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 bundle_planner
-.PHONY : bundle_planner
-
-# fast build rule for target.
-bundle_planner/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\bundle_planner.dir\build.make CMakeFiles/bundle_planner.dir/build
-.PHONY : bundle_planner/fast
 
 src/BasicGraph.obj: src/BasicGraph.cpp.obj
 .PHONY : src/BasicGraph.obj
@@ -295,7 +230,6 @@ src/BundlePlanner.obj: src/BundlePlanner.cpp.obj
 # target to build an object file
 src/BundlePlanner.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/BundlePlanner.cpp.obj
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\bundle_planner.dir\build.make CMakeFiles/bundle_planner.dir/src/BundlePlanner.cpp.obj
 .PHONY : src/BundlePlanner.cpp.obj
 
 src/BundlePlanner.i: src/BundlePlanner.cpp.i
@@ -304,7 +238,6 @@ src/BundlePlanner.i: src/BundlePlanner.cpp.i
 # target to preprocess a source file
 src/BundlePlanner.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/BundlePlanner.cpp.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\bundle_planner.dir\build.make CMakeFiles/bundle_planner.dir/src/BundlePlanner.cpp.i
 .PHONY : src/BundlePlanner.cpp.i
 
 src/BundlePlanner.s: src/BundlePlanner.cpp.s
@@ -313,7 +246,6 @@ src/BundlePlanner.s: src/BundlePlanner.cpp.s
 # target to generate assembly for a file
 src/BundlePlanner.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/BundlePlanner.cpp.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\bundle_planner.dir\build.make CMakeFiles/bundle_planner.dir/src/BundlePlanner.cpp.s
 .PHONY : src/BundlePlanner.cpp.s
 
 src/ECBS.obj: src/ECBS.cpp.obj
@@ -490,7 +422,6 @@ src/MultiGoalSIPPAdapter.obj: src/MultiGoalSIPPAdapter.cpp.obj
 # target to build an object file
 src/MultiGoalSIPPAdapter.cpp.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/MultiGoalSIPPAdapter.cpp.obj
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\mg_sipp_adapter.dir\build.make CMakeFiles/mg_sipp_adapter.dir/src/MultiGoalSIPPAdapter.cpp.obj
 .PHONY : src/MultiGoalSIPPAdapter.cpp.obj
 
 src/MultiGoalSIPPAdapter.i: src/MultiGoalSIPPAdapter.cpp.i
@@ -499,7 +430,6 @@ src/MultiGoalSIPPAdapter.i: src/MultiGoalSIPPAdapter.cpp.i
 # target to preprocess a source file
 src/MultiGoalSIPPAdapter.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/MultiGoalSIPPAdapter.cpp.i
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\mg_sipp_adapter.dir\build.make CMakeFiles/mg_sipp_adapter.dir/src/MultiGoalSIPPAdapter.cpp.i
 .PHONY : src/MultiGoalSIPPAdapter.cpp.i
 
 src/MultiGoalSIPPAdapter.s: src/MultiGoalSIPPAdapter.cpp.s
@@ -508,7 +438,6 @@ src/MultiGoalSIPPAdapter.s: src/MultiGoalSIPPAdapter.cpp.s
 # target to generate assembly for a file
 src/MultiGoalSIPPAdapter.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/MultiGoalSIPPAdapter.cpp.s
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\mg_sipp_adapter.dir\build.make CMakeFiles/mg_sipp_adapter.dir/src/MultiGoalSIPPAdapter.cpp.s
 .PHONY : src/MultiGoalSIPPAdapter.cpp.s
 
 src/OnlineGraph.obj: src/OnlineGraph.cpp.obj
@@ -895,78 +824,6 @@ src/driver.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/driver.cpp.s
 .PHONY : src/driver.cpp.s
 
-tests/test_dvs.obj: tests/test_dvs.cpp.obj
-.PHONY : tests/test_dvs.obj
-
-# target to build an object file
-tests/test_dvs.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs.dir\build.make CMakeFiles/test_dvs.dir/tests/test_dvs.cpp.obj
-.PHONY : tests/test_dvs.cpp.obj
-
-tests/test_dvs.i: tests/test_dvs.cpp.i
-.PHONY : tests/test_dvs.i
-
-# target to preprocess a source file
-tests/test_dvs.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs.dir\build.make CMakeFiles/test_dvs.dir/tests/test_dvs.cpp.i
-.PHONY : tests/test_dvs.cpp.i
-
-tests/test_dvs.s: tests/test_dvs.cpp.s
-.PHONY : tests/test_dvs.s
-
-# target to generate assembly for a file
-tests/test_dvs.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs.dir\build.make CMakeFiles/test_dvs.dir/tests/test_dvs.cpp.s
-.PHONY : tests/test_dvs.cpp.s
-
-tests/test_dvs_adapter.obj: tests/test_dvs_adapter.cpp.obj
-.PHONY : tests/test_dvs_adapter.obj
-
-# target to build an object file
-tests/test_dvs_adapter.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_adapter.dir\build.make CMakeFiles/test_dvs_adapter.dir/tests/test_dvs_adapter.cpp.obj
-.PHONY : tests/test_dvs_adapter.cpp.obj
-
-tests/test_dvs_adapter.i: tests/test_dvs_adapter.cpp.i
-.PHONY : tests/test_dvs_adapter.i
-
-# target to preprocess a source file
-tests/test_dvs_adapter.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_adapter.dir\build.make CMakeFiles/test_dvs_adapter.dir/tests/test_dvs_adapter.cpp.i
-.PHONY : tests/test_dvs_adapter.cpp.i
-
-tests/test_dvs_adapter.s: tests/test_dvs_adapter.cpp.s
-.PHONY : tests/test_dvs_adapter.s
-
-# target to generate assembly for a file
-tests/test_dvs_adapter.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_adapter.dir\build.make CMakeFiles/test_dvs_adapter.dir/tests/test_dvs_adapter.cpp.s
-.PHONY : tests/test_dvs_adapter.cpp.s
-
-tests/test_dvs_sipp_wire.obj: tests/test_dvs_sipp_wire.cpp.obj
-.PHONY : tests/test_dvs_sipp_wire.obj
-
-# target to build an object file
-tests/test_dvs_sipp_wire.cpp.obj:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_sipp_wire.dir\build.make CMakeFiles/test_dvs_sipp_wire.dir/tests/test_dvs_sipp_wire.cpp.obj
-.PHONY : tests/test_dvs_sipp_wire.cpp.obj
-
-tests/test_dvs_sipp_wire.i: tests/test_dvs_sipp_wire.cpp.i
-.PHONY : tests/test_dvs_sipp_wire.i
-
-# target to preprocess a source file
-tests/test_dvs_sipp_wire.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_sipp_wire.dir\build.make CMakeFiles/test_dvs_sipp_wire.dir/tests/test_dvs_sipp_wire.cpp.i
-.PHONY : tests/test_dvs_sipp_wire.cpp.i
-
-tests/test_dvs_sipp_wire.s: tests/test_dvs_sipp_wire.cpp.s
-.PHONY : tests/test_dvs_sipp_wire.s
-
-# target to generate assembly for a file
-tests/test_dvs_sipp_wire.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles\test_dvs_sipp_wire.dir\build.make CMakeFiles/test_dvs_sipp_wire.dir/tests/test_dvs_sipp_wire.cpp.s
-.PHONY : tests/test_dvs_sipp_wire.cpp.s
-
 # Help Target
 help:
 	@echo The following are some of the valid targets for this Makefile:
@@ -975,12 +832,7 @@ help:
 	@echo ... depend
 	@echo ... edit_cache
 	@echo ... rebuild_cache
-	@echo ... bundle_planner
 	@echo ... lifelong
-	@echo ... mg_sipp_adapter
-	@echo ... test_dvs
-	@echo ... test_dvs_adapter
-	@echo ... test_dvs_sipp_wire
 	@echo ... src/BasicGraph.obj
 	@echo ... src/BasicGraph.i
 	@echo ... src/BasicGraph.s
@@ -1068,15 +920,6 @@ help:
 	@echo ... src/driver.obj
 	@echo ... src/driver.i
 	@echo ... src/driver.s
-	@echo ... tests/test_dvs.obj
-	@echo ... tests/test_dvs.i
-	@echo ... tests/test_dvs.s
-	@echo ... tests/test_dvs_adapter.obj
-	@echo ... tests/test_dvs_adapter.i
-	@echo ... tests/test_dvs_adapter.s
-	@echo ... tests/test_dvs_sipp_wire.obj
-	@echo ... tests/test_dvs_sipp_wire.i
-	@echo ... tests/test_dvs_sipp_wire.s
 .PHONY : help
 
 
