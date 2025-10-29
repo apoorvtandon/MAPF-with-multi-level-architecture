@@ -142,6 +142,10 @@ private:
     void metrics_after_stitch(bool used_sipp, bool sipp_ok, bool fell_back, bool skipped_clean);
     void metrics_end_tick_and_maybe_log();
     void metrics_print_summary() const;
+    // Per-agent cooldown ticks remaining
+static const int REPLAN_COOLDOWN_TICKS = 3;
+std::vector<int> replan_cooldown; // size = num_of_drives
+
 
 private:
     // ===== original data we rely on =====
