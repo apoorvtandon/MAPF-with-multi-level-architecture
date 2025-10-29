@@ -159,6 +159,63 @@ safe_step_path(const KivaGrid& G, int v0, int t0, int v_goal)
     return out;
 }
 
+// ============================================================================
+// Corridor Tokens (NEW): lightweight directed edge reservations on chokepoints
+// ============================================================================
+struct CorridorToken {
+    int u, v, t, aid;
+};
+static std::vector<CorridorToken> g_corridor_tokens;
+
+static inline void tokens_gc(int now_t, int keep_ahead_T)
+{
+    // Keep tokens within [now_t-1, now_t+keep_ahead_T]
+    const int lo = std::max(0, now_t - 1);
+    const int hi = std::max(lo, now_t + keep_ahead_T);
+    size_t w = 0;
+    for (size_t i = 0; i < g_corridor_tokens.size(); ++i) {
+        int tt = g_corridor_tokens[i].t;
+        if (tt >= lo && tt <= hi) {
+            g_corridor_tokens[w++] = g_corridor_tokens[i];
+        }
+    }
+    g_corridor_tokens.resize(w);
+}
+
+static inline void tokens_add_from_path(const KivaGrid& G, const std::vector<State>& path, int aid)
+{
+    if (path.size() < 2) return;
+    for (size_t i = 1; i < path.size(); ++i) {
+        int u = clamp_vertex(G, path[i-1].location);
+        int v = clamp_vertex(G, path[i].location);
+        int t = path[i].timestep;
+        if (u == v) continue;
+        // only on corridor-like degree-2 vertices to stay light
+        if (!(u >= 0 && v >= 0)) continue;
+        bool chokey = false;
+        // we'll mark if either endpoint is a chokepoint (set later once g_is_choke is built)
+        extern std::vector<char> g_is_choke; // forward ref to file-local static
+        if (u < (int)g_is_choke.size() && g_is_choke[u]) chokey = true;
+        if (v < (int)g_is_choke.size() && g_is_choke[v]) chokey = true;
+        if (!chokey) continue;
+
+        g_corridor_tokens.push_back({u, v, t, aid});
+    }
+}
+
+static inline void tokens_collect_initial_reservations(int now_t, int horizonT, int current_agent,
+                                                       std::list<std::tuple<int,int,int>>& out)
+{
+    for (const auto& tok : g_corridor_tokens) {
+        if (tok.aid == current_agent) continue; // don't block self
+        if (tok.t < now_t || tok.t > horizonT) continue;
+        out.emplace_back(tok.u, tok.v, tok.t);
+    }
+}
+
+// ============================================================================
+// Build Reservation Table from teammates + tokens
+// ============================================================================
 static inline void build_rt_from_teammates_safe(
     const KivaGrid& G,
     const std::vector<Path>& paths,
@@ -200,8 +257,11 @@ static inline void build_rt_from_teammates_safe(
 
         others[i] = std::move(tmp);
     }
-    std::list<std::tuple<int,int,int>> empty_initial;
-    rt.build(others, empty_initial, current_agent);
+
+    // Corridor tokens as initial reservations (u,v,t)
+    std::list<std::tuple<int,int,int>> initial_res;
+    tokens_collect_initial_reservations(std::max(0, horizon_t - 1024), horizon_t, current_agent, initial_res);
+    rt.build(others, initial_res, current_agent);
 }
 
 // ============================================================================
@@ -502,7 +562,7 @@ static inline int min_incoming_edge_wait(const KivaGrid& G, int goal_v, int eta,
 // ==== CHOKEPOINTS (LITE) ====
 // Identify corridor-like degree-2 vertices once; per tick, score their heat.
 // ============================================================================
-static std::vector<char> g_is_choke;            // size = V, 1 if chokepoint
+std::vector<char> g_is_choke;            // size = V, 1 if chokepoint (exposed for tokens)
 static std::unordered_map<int,int> g_choke_heat; // vertex -> traversal count
 static int g_choke_built_at = -1000000;
 static int g_choke_horizonT = 0;
@@ -513,8 +573,7 @@ static inline void build_chokepoints_once(const KivaGrid& G)
     g_is_choke.assign(V, 0);
     for (int v = 0; v < V; ++v) {
         const auto& nbs = G.get_neighbors(v);
-        // narrow = degree 2 (classic corridor interior)
-        if ((int)nbs.size() == 2) {
+        if ((int)nbs.size() == 2) { // corridor interior
             g_is_choke[v] = 1;
         }
     }
@@ -534,7 +593,7 @@ static inline void build_choke_heat(const KivaGrid& G,
             int t = p[i].timestep;
             if (t < now_t || t > horizonT) continue;
             int v = clamp_vertex(G, p[i].location);
-            if (v >= 0 && g_is_choke[v]) {
+            if (v >= 0 && v < (int)g_is_choke.size() && g_is_choke[v]) {
                 g_choke_heat[v] += 1;
             }
         }
@@ -553,7 +612,7 @@ static inline int greedy_choke_penalty(const KivaGrid& G,
         int v = seq[i].first;
         int t = seq[i].second;
         if (t > horizonT) break;
-        if (v >= 0 && g_is_choke[v]) {
+        if (v >= 0 && v < (int)g_is_choke.size() && g_is_choke[v]) {
             auto it = g_choke_heat.find(v);
             if (it != g_choke_heat.end() && it->second > 0) {
                 penalty += CHOKE_PENALTY_W * it->second;
@@ -571,7 +630,7 @@ static inline bool starts_into_hot_choke(const KivaGrid& G,
     auto seq = safe_step_path(G, start_v, start_t, goal_v);
     if (seq.size() < 2) return false;
     int next_v = seq[1].first;
-    if (next_v >= 0 && g_is_choke[next_v]) {
+    if (next_v >= 0 && next_v < (int)g_is_choke.size() && g_is_choke[next_v]) {
         auto it = g_choke_heat.find(next_v);
         if (it != g_choke_heat.end() && it->second >= HOT_CHOKE_THRESH)
             return true;
@@ -898,7 +957,6 @@ void KivaSystem::plan_stitched_for_agent(int k)
         int wait_in = min_incoming_edge_wait(G, v, eta, delta);
         if (wait_in == INT_MAX) wait_in = 64;
 
-        // LIGHT add-on: penalize greedy route if it crosses hot chokes
         int choke_pen = greedy_choke_penalty(G, start_v, start_t, v, start_t + PLWIN);
 
         int sc = sc_v + wait_in * 6 + choke_pen;
@@ -936,7 +994,6 @@ void KivaSystem::plan_stitched_for_agent(int k)
             kept.push_back(v);
         }
         if (!kept.empty()) goals.swap(kept);
-        // if all skipped, we continue with the original set to avoid starvation
     }
 
     // ===== DSS: gate chain by incoming edge feasibility near ETA =====
@@ -1046,7 +1103,7 @@ void KivaSystem::plan_stitched_for_agent(int k)
         }
         int best_w = best_w_vertex + extra_w_edge;
 
-        // Build RT once, try with snapped edge-aware offset
+        // Build RT once, try with snapped edge-aware offset (includes corridor tokens)
         ReservationTable rt(G);
         build_rt_from_teammates_safe(G, paths, k,
                                      start_t + PLWIN,
@@ -1106,6 +1163,9 @@ void KivaSystem::plan_stitched_for_agent(int k)
         new_path.push_back(paths[k][i]);
     new_path.insert(new_path.end(), new_suffix.begin(), new_suffix.end());
     paths[k] = std::move(new_path);
+
+    // Add corridor tokens for this committed plan (only chokepoint edges)
+    tokens_add_from_path(G, new_suffix, k);
 
     suppress_replan_for(k);
     bundle_dirty[k] = false;
@@ -1202,6 +1262,9 @@ void KivaSystem::plan_stitched_batch()
         build_choke_heat(G, paths, timestep, g_choke_horizonT);
         g_choke_built_at = timestep;
     }
+
+    // ===== Corridor tokens GC =====
+    tokens_gc(timestep, PLWIN);
 
     // planning budget per tick to avoid spikes
     const int base_budget = std::max(4, num_of_drives / 5); // ~20%
