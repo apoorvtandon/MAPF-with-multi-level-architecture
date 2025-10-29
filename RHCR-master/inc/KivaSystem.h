@@ -81,6 +81,7 @@ private:
     void bundle_assert_capacity_ok(int k) const;
 
     void reorder_bundle_by_dvs(int k);
+    bool dss_debug_print = true; // set false to silence
 
     int  generate_endpoint_for(int k, int avoid_v) const;
     void maybe_autorefill_rest(int k);
@@ -113,7 +114,7 @@ private:
     // Dirty tracking & limits
     std::vector<bool> bundle_dirty;
     bool restitch_on_change = true;
-    int  stitch_depth       = 6;
+    int  stitch_depth       = 1;
 
     // batch options
     StitchOrder stitch_batch_order = StitchOrder::ByIndex;

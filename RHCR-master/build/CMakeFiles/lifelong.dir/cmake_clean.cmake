@@ -9,6 +9,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/lifelong.dir/src/BeeSystem.cpp.obj.d"
   "CMakeFiles/lifelong.dir/src/BundlePlanner.cpp.obj"
   "CMakeFiles/lifelong.dir/src/BundlePlanner.cpp.obj.d"
+  "CMakeFiles/lifelong.dir/src/DSS.cpp.obj"
+  "CMakeFiles/lifelong.dir/src/DSS.cpp.obj.d"
   "CMakeFiles/lifelong.dir/src/ECBS.cpp.obj"
   "CMakeFiles/lifelong.dir/src/ECBS.cpp.obj.d"
   "CMakeFiles/lifelong.dir/src/ECBSNode.cpp.obj"

@@ -3,7 +3,7 @@
 
 # Relative path conversion top directories.
 set(CMAKE_RELATIVE_PATH_TOP_SOURCE "C:/Users/apoor/Downloads/MAPF-with-multi-level-architecture/RHCR-master")
-set(CMAKE_RELATIVE_PATH_TOP_BINARY "C:/Users/apoor/Downloads/MAPF-with-multi-level-architecture/RHCR-master/build")
+set(CMAKE_RELATIVE_PATH_TOP_BINARY "C:/users/apoor/downloads/mapf-with-multi-level-architecture/rhcr-master/build")
 
 # Force unix paths in dependencies.
 set(CMAKE_FORCE_UNIX_PATHS 1)

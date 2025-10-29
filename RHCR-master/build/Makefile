@@ -59,7 +59,7 @@ EQUALS = =
 CMAKE_SOURCE_DIR = C:\Users\apoor\Downloads\MAPF-with-multi-level-architecture\RHCR-master
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = C:\Users\apoor\Downloads\MAPF-with-multi-level-architecture\RHCR-master\build
+CMAKE_BINARY_DIR = C:\users\apoor\downloads\mapf-with-multi-level-architecture\rhcr-master\build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -86,9 +86,9 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\apoor\Downloads\MAPF-with-multi-level-architecture\RHCR-master\build\CMakeFiles C:\Users\apoor\Downloads\MAPF-with-multi-level-architecture\RHCR-master\build\\CMakeFiles\progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\users\apoor\downloads\mapf-with-multi-level-architecture\rhcr-master\build\CMakeFiles C:\users\apoor\downloads\mapf-with-multi-level-architecture\rhcr-master\build\\CMakeFiles\progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start C:\Users\apoor\Downloads\MAPF-with-multi-level-architecture\RHCR-master\build\CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start C:\users\apoor\downloads\mapf-with-multi-level-architecture\rhcr-master\build\CMakeFiles 0
 .PHONY : all
 
 # The main clean target
@@ -247,6 +247,30 @@ src/BundlePlanner.s: src/BundlePlanner.cpp.s
 src/BundlePlanner.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/BundlePlanner.cpp.s
 .PHONY : src/BundlePlanner.cpp.s
+
+src/DSS.obj: src/DSS.cpp.obj
+.PHONY : src/DSS.obj
+
+# target to build an object file
+src/DSS.cpp.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/DSS.cpp.obj
+.PHONY : src/DSS.cpp.obj
+
+src/DSS.i: src/DSS.cpp.i
+.PHONY : src/DSS.i
+
+# target to preprocess a source file
+src/DSS.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/DSS.cpp.i
+.PHONY : src/DSS.cpp.i
+
+src/DSS.s: src/DSS.cpp.s
+.PHONY : src/DSS.s
+
+# target to generate assembly for a file
+src/DSS.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles\lifelong.dir\build.make CMakeFiles/lifelong.dir/src/DSS.cpp.s
+.PHONY : src/DSS.cpp.s
 
 src/ECBS.obj: src/ECBS.cpp.obj
 .PHONY : src/ECBS.obj
@@ -848,6 +872,9 @@ help:
 	@echo ... src/BundlePlanner.obj
 	@echo ... src/BundlePlanner.i
 	@echo ... src/BundlePlanner.s
+	@echo ... src/DSS.obj
+	@echo ... src/DSS.i
+	@echo ... src/DSS.s
 	@echo ... src/ECBS.obj
 	@echo ... src/ECBS.i
 	@echo ... src/ECBS.s
